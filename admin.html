@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FinTerminal Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0e1a;
+      --surface: rgba(255,255,255,0.04);
+      --border: rgba(255,255,255,0.08);
+      --up: #00d084;
+      --down: #ff4757;
+      --accent: #4facfe;
+      --accent2: #00f2fe;
+      --muted: #5a6a85;
+      --text: #e0e8f0;
+      --heading: #f0f6ff;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* ── Background grid ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 20%, rgba(79,172,254,0.07) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 80% at 80% 80%, rgba(0,242,254,0.05) 0%, transparent 60%),
+        repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(255,255,255,0.01) 40px, rgba(255,255,255,0.01) 41px),
+        repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(255,255,255,0.01) 40px, rgba(255,255,255,0.01) 41px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    .admin-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 2rem;
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      background: rgba(10,14,26,0.8);
+      position: sticky; top: 0; z-index: 100;
+    }
+
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 1.1rem; font-weight: 800;
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+    .logo svg { width: 24px; height: 24px; }
+
+    .admin-badge {
+      background: rgba(255, 71, 87, 0.15);
+      border: 1px solid rgba(255,71,87,0.3);
+      color: #ff4757;
+      padding: 3px 10px; border-radius: 20px;
+      font-size: .7rem; font-weight: 700; letter-spacing: .5px;
+    }
+
+    .header-right {
+      display: flex; align-items: center; gap: 12px;
+    }
+
+    .back-link {
+      color: var(--muted); text-decoration: none;
+      font-size: .8rem; display: flex; align-items: center; gap: 5px;
+      transition: color .2s;
+    }
+    .back-link:hover { color: var(--accent); }
+
+    .logout-btn {
+      background: rgba(255,71,87,0.12);
+      border: 1px solid rgba(255,71,87,0.25);
+      color: #ff4757;
+      padding: 5px 14px; border-radius: 8px;
+      font-size: .78rem; font-weight: 600;
+      cursor: pointer; transition: all .2s;
+      display: none;
+    }
+    .logout-btn:hover { background: rgba(255,71,87,0.25); }
+
+    /* ── Main layout ── */
+    .main {
+      flex: 1;
+      padding: 2rem;
+      max-width: 860px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* ── Login screen ── */
+    #login-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 60vh;
+      gap: 1.5rem;
+    }
+
+    .login-box {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2.5rem 2rem;
+      width: 100%;
+      max-width: 380px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
+    }
+
+    .login-icon {
+      width: 56px; height: 56px;
+      background: linear-gradient(135deg, rgba(79,172,254,0.2), rgba(0,242,254,0.1));
+      border: 1px solid rgba(79,172,254,0.3);
+      border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1.5rem;
+      font-size: 1.5rem;
+    }
+
+    .login-title {
+      text-align: center;
+      font-size: 1.3rem; font-weight: 700;
+      color: var(--heading);
+      margin-bottom: .4rem;
+    }
+
+    .login-sub {
+      text-align: center; color: var(--muted);
+      font-size: .8rem; margin-bottom: 1.8rem;
+    }
+
+    /* ── Admin dashboard ── */
+    #admin-screen { display: none; }
+
+    .page-title {
+      font-size: 1.5rem; font-weight: 800;
+      color: var(--heading);
+      margin-bottom: .35rem;
+      background: linear-gradient(135deg, var(--heading), var(--accent));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .page-sub {
+      color: var(--muted); font-size: .83rem; margin-bottom: 2rem;
+    }
+
+    /* ── Cards ── */
+    .glass-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      backdrop-filter: blur(12px);
+      margin-bottom: 1.25rem;
+    }
+
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 1.25rem;
+    }
+
+    .card-title {
+      display: flex; align-items: center; gap: 8px;
+      font-size: .85rem; font-weight: 700;
+      color: var(--heading); letter-spacing: .3px; text-transform: uppercase;
+    }
+    .card-title svg { width: 16px; height: 16px; opacity: .7; }
+
+    .status-pill {
+      font-size: .72rem; font-weight: 600;
+      padding: 3px 10px; border-radius: 20px;
+      letter-spacing: .3px;
+    }
+    .status-pill.connected {
+      background: rgba(0,208,132,0.15);
+      border: 1px solid rgba(0,208,132,0.3);
+      color: var(--up);
+    }
+    .status-pill.disconnected {
+      background: rgba(255,71,87,0.15);
+      border: 1px solid rgba(255,71,87,0.3);
+      color: var(--down);
+    }
+    .status-pill.unknown {
+      background: rgba(90,106,133,0.15);
+      border: 1px solid rgba(90,106,133,0.3);
+      color: var(--muted);
+    }
+
+    /* ── Form elements ── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .85rem;
+    }
+    .form-grid.single { grid-template-columns: 1fr; }
+    @media (max-width: 520px) { .form-grid { grid-template-columns: 1fr; } }
+
+    .form-group {
+      display: flex; flex-direction: column; gap: 5px;
+    }
+    .form-label {
+      font-size: .72rem; font-weight: 600;
+      color: var(--muted); text-transform: uppercase; letter-spacing: .4px;
+    }
+
+    .fin-input {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .83rem;
+      outline: none;
+      transition: all .2s;
+      width: 100%;
+    }
+    .fin-input:focus {
+      border-color: rgba(79,172,254,0.5);
+      background: rgba(79,172,254,0.05);
+      box-shadow: 0 0 0 3px rgba(79,172,254,0.08);
+    }
+    .fin-input::placeholder { color: var(--muted); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #4facfe, #00f2fe);
+      border: none;
+      border-radius: 10px;
+      padding: 11px 22px;
+      color: #0a0e1a;
+      font-weight: 700; font-size: .88rem;
+      cursor: pointer;
+      transition: all .2s;
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+      width: 100%;
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(79,172,254,0.35); }
+    .btn-primary:active { transform: none; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .btn-danger {
+      background: rgba(255,71,87,0.15);
+      border: 1px solid rgba(255,71,87,0.35);
+      border-radius: 10px;
+      padding: 10px 20px;
+      color: #ff4757; font-weight: 700; font-size: .85rem;
+      cursor: pointer; transition: all .2s;
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+    }
+    .btn-danger:hover { background: rgba(255,71,87,0.28); }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 18px;
+      color: var(--text); font-weight: 600; font-size: .85rem;
+      cursor: pointer; transition: all .2s;
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.1); }
+
+    .btn-row {
+      display: flex; gap: .75rem; margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+
+    /* ── Alert / toast ── */
+    .alert {
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: .82rem;
+      font-weight: 500;
+      margin-top: 1rem;
+      display: none;
+    }
+    .alert.success { background: rgba(0,208,132,0.1); border: 1px solid rgba(0,208,132,0.3); color: var(--up); }
+    .alert.error   { background: rgba(255,71,87,0.1);  border: 1px solid rgba(255,71,87,0.3);  color: var(--down); }
+    .alert.info    { background: rgba(79,172,254,0.1); border: 1px solid rgba(79,172,254,0.3); color: var(--accent); }
+    .alert.show    { display: block; }
+
+    /* ── Session info ── */
+    .session-info {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: .75rem;
+      margin-bottom: 1.2rem;
+    }
+    .info-item {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: .75rem 1rem;
+    }
+    .info-label { font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 3px; }
+    .info-val { font-family: 'JetBrains Mono', monospace; font-size: .82rem; color: var(--heading); font-weight: 600; word-break: break-all; }
+
+    /* ── Spinner ── */
+    .spin {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(0,0,0,0.3);
+      border-top-color: #0a0e1a;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Divider ── */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 1.2rem 0;
+    }
+
+    .section-label {
+      font-size: .7rem; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .5px;
+      margin-bottom: .8rem;
+    }
+
+    /* ── Toast notification ── */
+    #toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: rgba(20,28,46,0.95);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-size: .82rem; font-weight: 600;
+      max-width: 320px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      transform: translateY(80px);
+      opacity: 0;
+      transition: all .3s ease;
+      z-index: 999;
+      display: flex; align-items: center; gap: 10px;
+    }
+    #toast.show { transform: none; opacity: 1; }
+    #toast.success { border-color: rgba(0,208,132,0.4); color: var(--up); }
+    #toast.error   { border-color: rgba(255,71,87,0.4);  color: var(--down); }
+    #toast.info    { border-color: rgba(79,172,254,0.4); color: var(--accent); }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <header class="admin-header">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="logo-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#00f2fe"/>
+            <stop offset="100%" stop-color="#4facfe"/>
+          </linearGradient>
+        </defs>
+        <path d="M3 3v18h18M7 14l4-4 4 4 6-6" stroke="url(#logo-gradient)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+      FinTerminal
+    </div>
+    <div class="admin-badge">⚙ ADMIN PANEL</div>
+    <div class="header-right">
+      <a href="/" class="back-link">
+        <svg viewBox="0 0 20 20" fill="none" width="14" height="14"><path d="M12 4L6 10l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Back to Dashboard
+      </a>
+      <button class="logout-btn" id="logout-btn" onclick="doLogout()">Logout</button>
+    </div>
+  </header>
+
+  <main class="main">
+
+    <!-- ══ LOGIN SCREEN ══ -->
+    <div id="login-screen">
+      <div class="login-box">
+        <div class="login-icon">🔐</div>
+        <div class="login-title">Admin Access</div>
+        <div class="login-sub">Enter the admin password to continue</div>
+        <div class="form-grid single">
+          <div class="form-group">
+            <label class="form-label">Admin Password</label>
+            <input class="fin-input" type="password" id="admin-password" placeholder="Enter password…" onkeydown="if(event.key==='Enter') adminLogin()">
+          </div>
+        </div>
+        <div style="margin-top:1rem">
+          <button class="btn-primary" id="admin-login-btn" onclick="adminLogin()">
+            <svg viewBox="0 0 20 20" fill="none" width="16" height="16"><path d="M10 2C7.24 2 5 4.24 5 7v1H4a1 1 0 00-1 1v8a1 1 0 001 1h12a1 1 0 001-1V9a1 1 0 00-1-1h-1V7c0-2.76-2.24-5-5-5zm0 2c1.66 0 3 1.34 3 3v1H7V7c0-1.66 1.34-3 3-3z" fill="currentColor"/></svg>
+            Unlock Admin Panel
+          </button>
+        </div>
+        <div class="alert" id="login-alert"></div>
+      </div>
+    </div>
+
+    <!-- ══ ADMIN DASHBOARD ══ -->
+    <div id="admin-screen">
+      <div class="page-title">Admin Control Panel</div>
+      <div class="page-sub">Manage Kotak Neo API connection and server settings</div>
+
+      <!-- ── Kotak Neo Status ── -->
+      <div class="glass-card">
+        <div class="card-header">
+          <div class="card-title">
+            <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.8"/><path d="M10 6v4l3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            API Session Status
+          </div>
+          <span class="status-pill unknown" id="session-pill">Checking…</span>
+        </div>
+
+        <div class="session-info" id="session-info">
+          <div class="info-item">
+            <div class="info-label">Active Sessions</div>
+            <div class="info-val" id="si-sessions">—</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Session ID</div>
+            <div class="info-val" id="si-id" style="font-size:.7rem">—</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Server URL</div>
+            <div class="info-val" id="si-url" style="font-size:.7rem">—</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Data Center</div>
+            <div class="info-val" id="si-dc">—</div>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-secondary" onclick="checkStatus()">
+            <svg viewBox="0 0 20 20" fill="none" width="15" height="15"><path d="M4 10a6 6 0 1012 0 6 6 0 00-12 0zM4 10l-2 2M4 10l2 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Refresh Status
+          </button>
+          <button class="btn-danger" id="kill-session-btn" onclick="killSession()">
+            <svg viewBox="0 0 20 20" fill="none" width="15" height="15"><path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Kill Session
+          </button>
+        </div>
+        <div class="alert" id="status-alert"></div>
+      </div>
+
+      <!-- ── Kotak Neo Login ── -->
+      <div class="glass-card">
+        <div class="card-header">
+          <div class="card-title">
+            <svg viewBox="0 0 20 20" fill="none"><path d="M10 2C7.24 2 5 4.24 5 7v1H4a1 1 0 00-1 1v8a1 1 0 001 1h12a1 1 0 001-1V9a1 1 0 00-1-1h-1V7c0-2.76-2.24-5-5-5zm0 2c1.66 0 3 1.34 3 3v1H7V7c0-1.66 1.34-3 3-3z" fill="currentColor"/></svg>
+            Kotak Neo API Login
+          </div>
+        </div>
+
+        <div class="section-label">Authentication Credentials</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Client ID (UCC)</label>
+            <input class="fin-input" type="text" id="neo-ucc" placeholder="e.g. Y344O" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Mobile Number</label>
+            <input class="fin-input" type="text" id="neo-mobile" placeholder="10-digit number" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input class="fin-input" type="password" id="neo-password" placeholder="Account password">
+          </div>
+          <div class="form-group">
+            <label class="form-label">MPIN (6 digits)</label>
+            <input class="fin-input" type="password" id="neo-mpin" placeholder="6-digit MPIN" maxlength="6">
+          </div>
+          <div class="form-group">
+            <label class="form-label">TOTP Code</label>
+            <input class="fin-input" type="text" id="neo-totp" placeholder="6-digit TOTP" maxlength="6" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-primary" id="neo-login-btn" onclick="loginNeo()" style="flex:1">
+            <svg viewBox="0 0 20 20" fill="none" width="16" height="16"><path d="M10 2v10M6 6l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 14v2a2 2 0 002 2h8a2 2 0 002-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Connect to Kotak Neo
+          </button>
+        </div>
+        <div class="alert" id="neo-alert"></div>
+      </div>
+
+      <!-- ── API Keys Config ── -->
+      <div class="glass-card">
+        <div class="card-header">
+          <div class="card-title">
+            <svg viewBox="0 0 20 20" fill="none"><path d="M8 11a4 4 0 118 0 4 4 0 01-8 0zm0 0l-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            API Key Configuration
+          </div>
+        </div>
+        <div class="section-label">Kotak Neo Developer Credentials</div>
+        <div class="form-grid single">
+          <div class="form-group">
+            <label class="form-label">Consumer Key</label>
+            <input class="fin-input" type="text" id="cfg-consumer-key" placeholder="From Kotak API Manager" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Consumer Secret</label>
+            <input class="fin-input" type="password" id="cfg-consumer-secret" placeholder="Consumer secret (optional)">
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn-primary" onclick="saveApiKeys()" style="flex:1">
+            <svg viewBox="0 0 20 20" fill="none" width="16" height="16"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Save API Keys
+          </button>
+        </div>
+        <div class="alert" id="cfg-alert"></div>
+      </div>
+
+      <!-- ── Change Admin Password ── -->
+      <div class="glass-card">
+        <div class="card-header">
+          <div class="card-title">
+            <svg viewBox="0 0 20 20" fill="none"><path d="M10 2C7.24 2 5 4.24 5 7v1H4a1 1 0 00-1 1v8a1 1 0 001 1h12a1 1 0 001-1V9a1 1 0 00-1-1h-1V7c0-2.76-2.24-5-5-5z" fill="currentColor"/></svg>
+            Change Admin Password
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">New Password</label>
+            <input class="fin-input" type="password" id="new-pwd" placeholder="Min. 8 characters">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Confirm Password</label>
+            <input class="fin-input" type="password" id="confirm-pwd" placeholder="Repeat password">
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn-secondary" onclick="changePassword()">
+            <svg viewBox="0 0 20 20" fill="none" width="16" height="16"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Update Password
+          </button>
+        </div>
+        <div class="alert" id="pwd-alert"></div>
+      </div>
+
+    </div><!-- end admin-screen -->
+  </main>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+const API = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? 'http://localhost:3000'
+  : window.location.origin;
+let adminToken = sessionStorage.getItem('admin_token') || null;
+
+// ── Toast ──────────────────────────────────────
+function toast(msg, type='info') {
+  const el = document.getElementById('toast');
+  el.textContent = (type === 'success' ? '✓ ' : type === 'error' ? '✗ ' : 'ℹ ') + msg;
+  el.className = 'show ' + type;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.className = ''; }, 3500);
+}
+
+// ── Alert helpers ──────────────────────────────
+function showAlert(id, msg, type) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = 'alert show ' + type;
+  setTimeout(() => { if (el.className.includes('show')) el.className = 'alert'; }, 6000);
+}
+
+// ── Admin login ────────────────────────────────
+async function adminLogin() {
+  const pwd = document.getElementById('admin-password').value;
+  const btn = document.getElementById('admin-login-btn');
+  if (!pwd) { showAlert('login-alert', 'Password required', 'error'); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spin"></span> Verifying…`;
+
+  try {
+    const res = await fetch(`${API}/api/admin/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pwd })
+    });
+    const data = await res.json();
+
+    if (res.ok && data.token) {
+      adminToken = data.token;
+      sessionStorage.setItem('admin_token', adminToken);
+      showAdminPanel();
+    } else {
+      showAlert('login-alert', data.detail || 'Invalid password', 'error');
+    }
+  } catch (e) {
+    showAlert('login-alert', 'Cannot reach server — is the backend running?', 'error');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = `<svg viewBox="0 0 20 20" fill="none" width="16" height="16"><path d="M10 2C7.24 2 5 4.24 5 7v1H4a1 1 0 00-1 1v8a1 1 0 001 1h12a1 1 0 001-1V9a1 1 0 00-1-1h-1V7c0-2.76-2.24-5-5-5zm0 2c1.66 0 3 1.34 3 3v1H7V7c0-1.66 1.34-3 3-3z" fill="currentColor"/></svg> Unlock Admin Panel`;
+}
+
+function showAdminPanel() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('admin-screen').style.display = 'block';
+  document.getElementById('logout-btn').style.display = 'inline-flex';
+  checkStatus();
+  loadApiKeyConfig();
+}
+
+function doLogout() {
+  adminToken = null;
+  sessionStorage.removeItem('admin_token');
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('admin-screen').style.display = 'none';
+  document.getElementById('logout-btn').style.display = 'none';
+  document.getElementById('admin-password').value = '';
+}
+
+// ── Session status ─────────────────────────────
+async function checkStatus() {
+  try {
+    const res = await fetch(`${API}/api/admin/status`, {
+      headers: { 'Authorization': `Bearer ${adminToken}` }
+    });
+    if (res.status === 401) { toast('Session expired, please re-login', 'error'); doLogout(); return; }
+    const d = await res.json();
+
+    const pill = document.getElementById('session-pill');
+    if (d.sessions_count > 0) {
+      pill.textContent = 'Connected';
+      pill.className = 'status-pill connected';
+    } else {
+      pill.textContent = 'No Session';
+      pill.className = 'status-pill disconnected';
+    }
+
+    document.getElementById('si-sessions').textContent = d.sessions_count || '0';
+    const sid = d.session_ids?.[0] || '—';
+    document.getElementById('si-id').textContent = sid;
+    document.getElementById('si-url').textContent = d.base_url || '—';
+    document.getElementById('si-dc').textContent = d.data_center || '—';
+  } catch (e) {
+    document.getElementById('session-pill').textContent = 'Offline';
+    document.getElementById('session-pill').className = 'status-pill unknown';
+  }
+}
+
+// ── Kill Session ───────────────────────────────
+async function killSession() {
+  if (!confirm('This will disconnect the Kotak Neo session. Continue?')) return;
+  try {
+    const res = await fetch(`${API}/api/admin/kill-session`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${adminToken}` }
+    });
+    if (res.status === 401) { toast('Session expired', 'error'); doLogout(); return; }
+    const d = await res.json();
+    toast(d.message || 'Session killed', 'success');
+    checkStatus();
+  } catch (e) {
+    toast('Error: ' + e.message, 'error');
+  }
+}
+
+// ── Kotak Neo Login ────────────────────────────
+async function loginNeo() {
+  const btn = document.getElementById('neo-login-btn');
+  const ucc = document.getElementById('neo-ucc').value.trim();
+  const mobile = document.getElementById('neo-mobile').value.trim();
+  const password = document.getElementById('neo-password').value;
+  const mpin = document.getElementById('neo-mpin').value;
+  const totp = document.getElementById('neo-totp').value.trim();
+
+  if (!ucc || !mobile || !password || !mpin || !totp) {
+    showAlert('neo-alert', 'All fields are required', 'error'); return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spin"></span> Authenticating with Kotak Neo…`;
+
+  try {
+    const res = await fetch(`${API}/api/neo/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${adminToken}`
+      },
+      body: JSON.stringify({ ucc, mobile, password, mpin, totp })
+    });
+    const data = await res.json();
+
+    if (res.ok && data.success) {
+      showAlert('neo-alert', '✓ ' + data.message, 'success');
+      toast('Kotak Neo connected successfully!', 'success');
+      // Save UCC/mobile for convenience (not password)
+      localStorage.setItem('neo_admin_ucc', ucc);
+      localStorage.setItem('neo_admin_mobile', mobile);
+      checkStatus();
+    } else {
+      showAlert('neo-alert', '✗ ' + (data.detail || 'Authentication failed'), 'error');
+    }
+  } catch (e) {
+    showAlert('neo-alert', 'Error: ' + e.message, 'error');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = `<svg viewBox="0 0 20 20" fill="none" width="16" height="16"><path d="M10 2v10M6 6l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 14v2a2 2 0 002 2h8a2 2 0 002-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Connect to Kotak Neo`;
+}
+
+// ── Load API key config ────────────────────────
+async function loadApiKeyConfig() {
+  try {
+    const res = await fetch(`${API}/api/admin/config`, {
+      headers: { 'Authorization': `Bearer ${adminToken}` }
+    });
+    if (!res.ok) return;
+    const d = await res.json();
+    if (d.consumer_key) document.getElementById('cfg-consumer-key').value = d.consumer_key;
+  } catch (e) {}
+}
+
+// ── Save API keys ──────────────────────────────
+async function saveApiKeys() {
+  const ck = document.getElementById('cfg-consumer-key').value.trim();
+  const cs = document.getElementById('cfg-consumer-secret').value.trim();
+  if (!ck) { showAlert('cfg-alert', 'Consumer Key is required', 'error'); return; }
+
+  try {
+    const res = await fetch(`${API}/api/admin/config`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${adminToken}`
+      },
+      body: JSON.stringify({ consumer_key: ck, consumer_secret: cs })
+    });
+    if (res.status === 401) { toast('Unauthorized', 'error'); doLogout(); return; }
+    const d = await res.json();
+    if (res.ok) {
+      showAlert('cfg-alert', '✓ API keys saved — server will use new keys on next login', 'success');
+      toast('Config saved!', 'success');
+    } else {
+      showAlert('cfg-alert', '✗ ' + (d.detail || 'Save failed'), 'error');
+    }
+  } catch (e) {
+    showAlert('cfg-alert', 'Error: ' + e.message, 'error');
+  }
+}
+
+// ── Change admin password ──────────────────────
+async function changePassword() {
+  const np = document.getElementById('new-pwd').value;
+  const cp = document.getElementById('confirm-pwd').value;
+  if (!np || np.length < 8) { showAlert('pwd-alert', 'Password must be at least 8 characters', 'error'); return; }
+  if (np !== cp) { showAlert('pwd-alert', 'Passwords do not match', 'error'); return; }
+
+  try {
+    const res = await fetch(`${API}/api/admin/change-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${adminToken}`
+      },
+      body: JSON.stringify({ new_password: np })
+    });
+    if (res.status === 401) { toast('Unauthorized', 'error'); doLogout(); return; }
+    const d = await res.json();
+    if (res.ok) {
+      showAlert('pwd-alert', '✓ Password updated successfully', 'success');
+      toast('Password changed!', 'success');
+      document.getElementById('new-pwd').value = '';
+      document.getElementById('confirm-pwd').value = '';
+    } else {
+      showAlert('pwd-alert', '✗ ' + (d.detail || 'Failed'), 'error');
+    }
+  } catch (e) {
+    showAlert('pwd-alert', 'Error: ' + e.message, 'error');
+  }
+}
+
+// ── On load ────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  // Restore saved UCC/mobile
+  const savedUcc = localStorage.getItem('neo_admin_ucc');
+  const savedMobile = localStorage.getItem('neo_admin_mobile');
+  if (savedUcc) document.getElementById('neo-ucc').value = savedUcc;
+  if (savedMobile) document.getElementById('neo-mobile').value = savedMobile;
+
+  // Check if already have a token
+  if (adminToken) {
+    // Validate token with server
+    fetch(`${API}/api/admin/status`, { headers: { 'Authorization': `Bearer ${adminToken}` } })
+      .then(r => {
+        if (r.ok) showAdminPanel();
+        else { adminToken = null; sessionStorage.removeItem('admin_token'); }
+      })
+      .catch(() => {});
+  }
+
+  // Enter key on password
+  document.getElementById('admin-password').addEventListener('keydown', e => {
+    if (e.key === 'Enter') adminLogin();
+  });
+});
+</script>
+</body>
+</html>

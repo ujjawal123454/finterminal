@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinTerminal | Institutional Flow & Live Indian Market Dashboard</title>
+    <meta name="description" content="Professional real-time financial terminal for Indian markets. Track FII/DII activity, live IPO GMP, option chains, and create a custom stock watchlist with real-time performance tracking.">
+    <meta name="keywords" content="NSE, BSE, FII DII activity, IPO GMP, Indian Stock Market, Option Chain, Nifty 50, Bank Nifty, Stock Watchlist">
+    <link rel="canonical" href="https://finterminal.example.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+<!-- ═══ MSTOCK REFERRAL BANNER ═══ -->
+<div id="mstock-banner" class="referral-banner">
+    <div class="banner-content">
+        <div class="banner-badge">mStock Franchise</div>
+        <span class="banner-text">Open a <strong>FREE Demat Account</strong> with mStock!</span>
+        <a href="https://tinyurl.com/4dw4uzr3" id="mstock-link" class="banner-btn" target="_blank">Open Free Account</a>
+    </div>
+    <button class="banner-close" onclick="this.parentElement.remove()">&times;</button>
+</div>
+
+<!-- ═══ HEADER ═══ -->
+<header id="app-header">
+    <div class="header-left">
+        <div class="logo">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="logo-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#00f2fe"/>
+                        <stop offset="100%" stop-color="#4facfe"/>
+                    </linearGradient>
+                </defs>
+                <path d="M3 3v18h18M7 14l4-4 4 4 6-6" stroke="url(#logo-gradient)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+            FinTerminal
+        </div>
+        
+        <div class="header-search">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M18 18l-4.35-4.35"/></svg>
+            <input type="text" id="global-search" placeholder="Search stocks (SBIN, RELIANCE)..." onkeydown="if(event.key==='Enter') openStockChart(this.value)">
+        </div>
+    </div>
+
+    <nav class="tab-nav" id="main-tabs">
+        <button class="tab-btn active" data-tab="straddle" id="tab-straddle">
+            <svg viewBox="0 0 20 20" fill="none"><path d="M2 14l5-5 4 4 7-8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Straddle
+        </button>
+        <button class="tab-btn" data-tab="option-chain" id="tab-option-chain">
+            <svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M7 7h6M7 10h6M7 13h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Option Chain
+        </button>
+        <button class="tab-btn" data-tab="market-pulse" id="tab-market-pulse">
+            <svg viewBox="0 0 20 20" fill="none"><path d="M10 2v3M10 15v3M2 10h3M15 10h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="10" cy="10" r="4" stroke="currentColor" stroke-width="1.8"/></svg>
+            Market Pulse
+        </button>
+        <button class="tab-btn" data-tab="ipo-bonds" id="tab-ipo-bonds">
+            <svg viewBox="0 0 20 20" fill="none"><rect x="4" y="4" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M7 8h6M7 12h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            IPO & Bonds
+        </button>
+        <button class="tab-btn" data-tab="global" id="tab-global">
+            <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.8"/><path d="M2 10h16M10 2c-3 3-3 13 0 16M10 2c3 3 3 13 0 16" stroke="currentColor" stroke-width="1.8"/></svg>
+            Global Markets
+        </button>
+        <button class="tab-btn" data-tab="fii-dii" id="tab-fii-dii">
+            <svg viewBox="0 0 20 20" fill="none"><path d="M4 16h12M4 12h12M4 8h12M4 4h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            FII / DII
+        </button>
+    </nav>
+
+    <div class="header-right">
+        <div class="conn-badge" id="conn-badge">
+            <span class="conn-dot" id="conn-dot"></span>
+            <span id="conn-label">Offline</span>
+        </div>
+    </div>
+</header>
+
+<!-- ═══ TICKER BAR ═══ -->
+<div class="ticker-bar" id="ticker-bar">
+    <div class="ticker-track" id="ticker-track">
+        <div class="ticker-item">
+            <span class="ticker-name">NIFTY 50</span>
+            <span class="ticker-price" id="tn-price">—</span>
+            <span class="ticker-change" id="tn-change">—</span>
+        </div>
+        <div class="ticker-sep"></div>
+        <div class="ticker-item">
+            <span class="ticker-name">BANKNIFTY</span>
+            <span class="ticker-price" id="tb-price">—</span>
+            <span class="ticker-change" id="tb-change">—</span>
+        </div>
+        <div class="ticker-sep"></div>
+        <div class="ticker-item">
+            <span class="ticker-name">FINNIFTY</span>
+            <span class="ticker-price" id="tf-price">—</span>
+            <span class="ticker-change" id="tf-change">—</span>
+        </div>
+        <div class="ticker-sep"></div>
+        <div class="ticker-item">
+            <span class="ticker-name">INDIA VIX</span>
+            <span class="ticker-price" id="tv-price">—</span>
+            <span class="ticker-change" id="tv-change">—</span>
+        </div>
+        <div class="ticker-sep"></div>
+        <div class="ticker-item">
+            <span class="ticker-name">SENSEX</span>
+            <span class="ticker-price" id="ts-price">—</span>
+            <span class="ticker-change" id="ts-change">—</span>
+        </div>
+    </div>
+    <div class="ticker-time" id="ticker-time">Fetching…</div>
+</div>
+
+<!-- ═══ MAIN CONTENT ═══ -->
+<main id="main-area">
+
+    <!-- ─── TAB 1: STRADDLE CHART ─── -->
+    <div class="tab-panel active" id="panel-straddle">
+        <div class="panel-layout">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <!-- Market Overview Card (replaces login for public view) -->
+                <div class="glass-card" id="market-overview-card">
+                    <div class="card-title">
+                        <svg viewBox="0 0 20 20" fill="none"><path d="M2 14l5-5 4 4 7-8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        Market Overview
+                    </div>
+                    <div class="market-stats">
+                        <div class="mstat"><span class="mstat-label">SENSEX</span><span class="mstat-val" id="sidebar-sensex">—</span></div>
+                        <div class="mstat"><span class="mstat-label">NIFTY 50</span><span class="mstat-val" id="sidebar-nifty">—</span></div>
+                        <div class="mstat"><span class="mstat-label">BANK NIFTY</span><span class="mstat-val" id="sidebar-bnifty">—</span></div>
+                        <div class="mstat"><span class="mstat-label">INDIA VIX</span><span class="mstat-val" id="sidebar-vix">—</span></div>
+                    </div>
+                </div>
+
+                <!-- Hidden Kotak Login (admin only, toggle with Ctrl+Shift+K) -->
+                <div class="glass-card login-card" id="login-card" style="display:none">
+                    <div class="card-title">
+                        <svg viewBox="0 0 20 20" fill="none"><path d="M10 2C7.24 2 5 4.24 5 7v1H4a1 1 0 00-1 1v8a1 1 0 001 1h12a1 1 0 001-1V9a1 1 0 00-1-1h-1V7c0-2.76-2.24-5-5-5zm0 2c1.66 0 3 1.34 3 3v1H7V7c0-1.66 1.34-3 3-3z" fill="currentColor"/></svg>
+                        Kotak Neo Login
+                    </div>
+                    <div class="form-stack">
+                        <input class="fin-input" type="text" id="neo-ucc" placeholder="Client ID (UCC)" autocomplete="off">
+                        <input class="fin-input" type="text" id="neo-mobile" placeholder="Mobile Number" autocomplete="off">
+                        <input class="fin-input" type="password" id="neo-password" placeholder="Password">
+                        <input class="fin-input" type="password" id="neo-mpin" placeholder="MPIN (6 digits)">
+                        <input class="fin-input" type="text" id="neo-totp" placeholder="TOTP Code" autocomplete="off">
+                        <button class="btn-primary" id="neo-login-btn" onclick="loginNeo()">
+                            <svg viewBox="0 0 20 20" fill="none"><path d="M10 2v10M6 6l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 14v2a2 2 0 002 2h8a2 2 0 002-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                            Connect to API
+                        </button>
+                    </div>
+                    <div class="neo-status" id="neo-status">Not connected</div>
+                </div>
+
+                <!-- Watchlist -->
+                <div class="glass-card">
+                    <div class="card-title">
+                        <svg viewBox="0 0 20 20" fill="none"><path d="M5 4l10 6-10 6V4z" fill="currentColor"/></svg>
+                        Watchlist
+                    </div>
+                    <div class="watchlist-container" id="watchlist-items">
+                        <!-- Watchlist items here -->
+                        <div class="loading">No stocks added</div>
+                    </div>
+                </div>
+
+                <!-- Asset selector -->
+                <div class="glass-card">
+                    <div class="card-title">Asset</div>
+                    <select class="fin-select" id="asset-select" onchange="onAssetChange()">
+                        <option value="NIFTY">NIFTY 50</option>
+                        <option value="BANKNIFTY">BANKNIFTY</option>
+                        <option value="FINNIFTY">FINNIFTY</option>
+                    </select>
+                </div>
+
+                <!-- Premium display -->
+                <div class="glass-card prem-card">
+                    <div class="prem-label">Combined Straddle Premium</div>
+                    <div class="prem-value" id="premium-value">₹ —</div>
+                    <div class="prem-change" id="premium-change">—</div>
+                    <div class="prem-row">
+                        <span>ATM Strike</span><strong id="atm-strike">—</strong>
+                    </div>
+                    <div class="prem-row">
+                        <span>Spot Price</span><strong id="spot-price">—</strong>
+                    </div>
+                    <div class="prem-row">
+                        <span>PCR</span><strong id="pcr-val">—</strong>
+                    </div>
+                </div>
+
+                <!-- Status -->
+                <div class="status-row">
+                    <span class="live-dot" id="live-dot"></span>
+                    <span id="live-status">Offline</span>
+                </div>
+            </aside>
+
+            <!-- Chart -->
+            <section class="chart-section glass-card">
+                <div class="chart-head">
+                    <h1 class="chart-title" id="chart-title">NIFTY ATM Straddle</h1>
+                    <div class="chart-meta" id="chart-meta">Live</div>
+                </div>
+                <div id="tvchart" class="chart-canvas"></div>
+            </section>
+        </div>
+    </div>
+
+    <!-- ─── TAB 2: OPTION CHAIN ─── -->
+    <div class="tab-panel" id="panel-option-chain">
+        <div class="oc-toolbar glass-card">
+            <div class="oc-left">
+                <select class="fin-select sm" id="oc-symbol" onchange="loadOptionChain()">
+                    <option value="NIFTY">NIFTY</option>
+                    <option value="BANKNIFTY">BANKNIFTY</option>
+                    <option value="FINNIFTY">FINNIFTY</option>
+                </select>
+                <select class="fin-select sm" id="oc-expiry" onchange="filterOCExpiry()">
+                    <option>Loading…</option>
+                </select>
+            </div>
+            <div class="oc-stats" id="oc-stats">
+                <div class="oc-stat"><span>Spot</span><strong id="oc-spot">—</strong></div>
+                <div class="oc-stat"><span>ATM</span><strong id="oc-atm">—</strong></div>
+                <div class="oc-stat"><span>PCR</span><strong id="oc-pcr">—</strong></div>
+                <div class="oc-stat"><span>Expiry</span><strong id="oc-exp">—</strong></div>
+            </div>
+            <button class="btn-icon" id="oc-refresh-btn" onclick="loadOptionChain()" title="Refresh">
+                <svg viewBox="0 0 20 20" fill="none"><path d="M4 10a6 6 0 1012 0 6 6 0 00-12 0zM4 10l-2 2M4 10l2 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                Refresh
+            </button>
+        </div>
+        <div class="oc-legend">
+            <div class="oc-legend-ce">CALLS (CE)</div>
+            <div class="oc-legend-strike">STRIKE</div>
+            <div class="oc-legend-pe">PUTS (PE)</div>
+        </div>
+        <div class="oc-scroll" id="oc-table-wrap">
+            <table class="oc-table" id="oc-table">
+                <thead>
+                    <tr>
+                        <!-- CE cols -->
+                        <th>Buildup</th>
+                        <th>Δ Delta</th>
+                        <th>IV%</th>
+                        <th>OI Chg</th>
+                        <th>OI</th>
+                        <th>Volume</th>
+                        <th>LTP</th>
+                        <!-- Strike -->
+                        <th class="strike-col">STRIKE</th>
+                        <!-- PE cols -->
+                        <th>LTP</th>
+                        <th>Volume</th>
+                        <th>OI</th>
+                        <th>OI Chg</th>
+                        <th>IV%</th>
+                        <th>Δ Delta</th>
+                        <th>Buildup</th>
+                    </tr>
+                </thead>
+                <tbody id="oc-tbody">
+                    <tr><td colspan="15" class="oc-loading">Loading option chain…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ─── TAB 3: MARKET PULSE ─── -->
+    <div class="tab-panel" id="panel-market-pulse">
+        <!-- Live Scanner at TOP -->
+        <div class="glass-card scanner-card-top">
+            <div class="card-title"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="3" fill="var(--up)"/><circle cx="10" cy="10" r="7" stroke="var(--up)" stroke-width="1.5" opacity=".4"/><circle cx="10" cy="10" r="10" stroke="var(--up)" stroke-width="1" opacity=".2"/></svg> Live Scanner — Day High / Low</div>
+            <div class="scanner-feed" id="scanner-feed"><div class="loading">Waiting for market data...</div></div>
+        </div>
+
+        <!-- Index Selector -->
+        <div class="pd-toolbar glass-card">
+            <div class="pd-index-tabs">
+                <button class="pd-tab active" data-idx="NIFTY" onclick="loadPD('NIFTY',this)">Nifty 50</button>
+                <button class="pd-tab" data-idx="BANKNIFTY" onclick="loadPD('BANKNIFTY',this)">Bank Nifty</button>
+                <button class="pd-tab" data-idx="SENSEX" onclick="loadPD('SENSEX',this)">Sensex</button>
+                <button class="pd-tab" data-idx="FINNIFTY" onclick="loadPD('FINNIFTY',this)">Fin Nifty</button>
+            </div>
+            <div class="pd-index-info">
+                <span class="pd-idx-name" id="pd-idx-name">NIFTY 50</span>
+                <span class="pd-idx-price" id="pd-idx-price">—</span>
+                <span class="pd-idx-chg" id="pd-idx-chg">—</span>
+                <span class="pd-idx-time" id="pd-idx-time">—</span>
+            </div>
+        </div>
+
+        <!-- Gauge + Tables -->
+        <div class="pd-main">
+            <div class="glass-card pd-gauge-card">
+                <canvas id="pd-gauge" width="280" height="160"></canvas>
+                <div class="pd-gauge-label"><span id="pd-pull-count">0</span>/<span id="pd-drag-count">0</span></div>
+                <div class="pd-gauge-sub">Pullers / Draggers</div>
+            </div>
+            <div class="glass-card pd-table-card">
+                <div class="pd-table-head puller-head">▲ Pullers</div>
+                <div class="pd-table-scroll">
+                    <table class="pd-table" id="pd-pullers-table">
+                        <thead><tr><th>Symbol</th><th>Rate</th><th>Change</th><th>W Point</th></tr></thead>
+                        <tbody id="pd-pullers-body"><tr><td colspan="4" class="loading">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="glass-card pd-table-card">
+                <div class="pd-table-head dragger-head">▼ Draggers</div>
+                <div class="pd-table-scroll">
+                    <table class="pd-table" id="pd-draggers-table">
+                        <thead><tr><th>Symbol</th><th>Rate</th><th>Change</th><th>W Point</th></tr></thead>
+                        <tbody id="pd-draggers-body"><tr><td colspan="4" class="loading">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── TAB 4: GLOBAL MARKETS ─── -->
+    <div class="tab-panel" id="panel-global">
+        <div class="global-header">
+            <h2>Global Markets</h2>
+            <span class="refresh-note" id="global-refresh-time">Last updated: —</span>
+        </div>
+        <div class="global-grid" id="global-grid">
+            <div class="global-skeleton"></div>
+            <div class="global-skeleton"></div>
+            <div class="global-skeleton"></div>
+            <div class="global-skeleton"></div>
+            <div class="global-skeleton"></div>
+            <div class="global-skeleton"></div>
+        </div>
+    </div>
+
+    <!-- ─── TAB 4b: IPO & BONDS ─── -->
+    <div class="tab-panel" id="panel-ipo-bonds">
+        <div class="ipo-layout">
+            <div class="ipo-sidebar">
+                <div class="glass-card ipo-menu">
+                    <button class="ipo-menu-btn active" data-view="mainline">📋 Mainline IPOs</button>
+                    <button class="ipo-menu-btn" data-view="sme">🏢 SME IPOs</button>
+                    <button class="ipo-menu-btn" data-view="gmp">📊 GMP Analysis</button>
+                    <button class="ipo-menu-btn" data-view="bonds">💰 Public Bonds</button>
+                </div>
+            </div>
+            <div class="ipo-content" id="ipo-content">
+                <div class="card-title-row" style="margin-bottom:1rem">
+                    <h2 id="ipo-view-title" style="font-size:1.1rem;font-weight:700;margin:0">Mainboard IPOs</h2>
+                    <span id="ipo-count" style="font-size:.75rem;color:var(--muted)"></span>
+                </div>
+                <div class="ipo-cards" id="ipo-cards-container">
+                    <div class="loading">Loading IPO data...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── TAB 6: FII / DII ─── -->
+    <div class="tab-panel" id="panel-fii-dii">
+        <div class="glass-card">
+            <div class="card-title">FII / DII Institutional Flow (INR Cr)</div>
+            <div class="table-container">
+                <table class="fin-table">
+                    <thead id="fii-thead">
+                        <tr>
+                            <th>Date</th>
+                            <th>Category</th>
+                            <th>Buy Value</th>
+                            <th>Sell Value</th>
+                            <th>Net Value</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fii-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+</main>
+
+<!-- ═══ STOCK MODAL ═══ -->
+<div id="stock-modal" class="modal">
+    <div class="modal-content glass-card">
+        <div class="modal-header">
+                <div class="modal-title-group">
+                    <h2 id="modal-title">RELIANCE</h2>
+                    <span class="badge" id="modal-source">Live Feed</span>
+                    <button class="btn-small" onclick="toggleWatchlistCurrent()">+ Watchlist</button>
+                </div>
+            <button class="close-btn" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="quote-grid">
+                <div class="quote-item"><span class="q-label">LTP</span><span id="q-ltp" class="q-val">—</span></div>
+                <div class="quote-item"><span class="q-label">Change</span><span id="q-chg" class="q-val">—</span></div>
+                <div class="quote-item"><span class="q-label">Open</span><span id="q-open" class="q-val">—</span></div>
+                <div class="quote-item"><span class="q-label">Day High</span><span id="q-high" class="q-val up">—</span></div>
+                <div class="quote-item"><span class="q-label">Day Low</span><span id="q-low" class="q-val down">—</span></div>
+                <div class="quote-item"><span class="q-label">Volume</span><span id="q-vol" class="q-val">—</span></div>
+            </div>
+            <div id="modal-chart-container" class="modal-chart"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ MSTOCK POPUP MODAL ═══ -->
+<div id="mstock-popup" class="modal">
+    <div class="modal-content glass-card promo-modal">
+        <button class="modal-close" onclick="closeMstockPopup()">&times;</button>
+        <div class="promo-header">
+            <div class="banner-badge">Official Franchise</div>
+            <h2>Unlock Trading Benefits</h2>
+        </div>
+        <div class="promo-body">
+            <p>Join <strong>mStock</strong> today and open your free account via FinTerminal!</p>
+            <ul class="promo-features">
+                <li>✓ Zero Brokerage on Options</li>
+                <li>✓ Professional Trading Tools</li>
+                <li>✓ Fast Order Execution</li>
+            </ul>
+            <a href="https://tinyurl.com/4dw4uzr3" target="_blank" class="btn-primary promo-btn">Open Free Account Now</a>
+        </div>
+        <div class="promo-footer">Limited Time Offer via FinTerminal</div>
+    </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+    // Show mStock popup after 5 seconds if not closed before
+    setTimeout(() => {
+        if (!localStorage.getItem('mstock_closed')) {
+            document.getElementById('mstock-popup').classList.add('active');
+        }
+    }, 5000);
+
+    function closeMstockPopup() {
+        document.getElementById('mstock-popup').classList.remove('active');
+        localStorage.setItem('mstock_closed', 'true');
+    }
+</script>
+</body>
+</html>

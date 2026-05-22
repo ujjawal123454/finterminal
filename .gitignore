@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Environment — NEVER commit secrets
+backend/.env
+.env
+*.env
+
+# Sessions — contains auth tokens, never commit
+backend/sessions.json
+sessions.json
+
+# Logs & cache
+*.log
+backend/cache/
+cache/
+backend/resp.html
+
+# Test scripts
+backend/test_*.py
+backend/inspect_cfg.py
+backend/dump_scripts.py
+backend/scripts_dump.txt
+backend/search_sdk.py
+
+# OS files
+.DS_Store
+Thumbs.db
