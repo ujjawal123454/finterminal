@@ -1,5 +1,5 @@
 fastapi
-uvicorn
+uvicorn[standard]>=0.20.0
 wsproto
 websockets
 python-dotenv
