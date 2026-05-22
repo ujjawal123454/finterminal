@@ -1,8 +1,7 @@
 fastapi
-uvicorn[standard]>=0.20.0
+uvicorn>=0.20.0
 urllib3==1.26.14
 wsproto
-websockets
 python-dotenv
 yfinance
 pandas
