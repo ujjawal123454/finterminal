@@ -77,6 +77,11 @@ async def serve_appjs():
 async def serve_css():
     return FileResponse(str(FRONTEND_DIR / "style.css"), media_type="text/css")
 
+@app.get("/lightweight-charts.standalone.production.js")
+async def serve_lwc():
+    return FileResponse(str(FRONTEND_DIR / "lightweight-charts.standalone.production.js"), media_type="application/javascript")
+
+
 # ── Session Store ────────────────────────────────────────────────────────────
 SESSION_FILE = Path(__file__).parent / "sessions.json"
 neo_clients: Dict[str, object] = {}

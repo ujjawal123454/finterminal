@@ -504,42 +504,54 @@ function initChart() {
     const el = document.getElementById('tvchart');
     if (!el || tvChart) return;
 
-    tvChart = LightweightCharts.createChart(el, {
-        layout: {
-            background: { type: 'solid', color: 'transparent' },
-            textColor: '#8096b7',
-            fontFamily: "'Plus Jakarta Sans', sans-serif"
-        },
-        grid: {
-            vertLines: { color: 'rgba(255, 255, 255, 0.04)' },
-            horzLines: { color: 'rgba(255, 255, 255, 0.04)' }
-        },
-        crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-        rightPriceScale: { borderColor: 'rgba(255, 255, 255, 0.08)' },
-        timeScale: {
-            borderColor: 'rgba(255, 255, 255, 0.08)',
-            timeVisible: true,
-            secondsVisible: false
-        },
-        handleScroll: true,
-        handleScale: true
-    });
-
-    priceSeries = tvChart.addLineSeries({
-        color: '#00f2fe',
-        lineWidth: 2.5,
-        crosshairMarkerRadius: 5,
-        lastValueVisible: true,
-        priceLineVisible: true,
-        priceLineColor: 'rgba(0, 242, 254, 0.3)'
-    });
-
-    new ResizeObserver(() => {
-        if (tvChart && el) {
-            tvChart.applyOptions({ width: el.clientWidth, height: el.clientHeight });
+    try {
+        if (typeof LightweightCharts === 'undefined') {
+            console.error("LightweightCharts library is not loaded.");
+            el.innerHTML = `<div class="loading" style="color:var(--down)">Failed to load Chart Library. Please check your network connection or server status.</div>`;
+            return;
         }
-    }).observe(el);
+
+        tvChart = LightweightCharts.createChart(el, {
+            layout: {
+                background: { type: 'solid', color: 'transparent' },
+                textColor: '#8096b7',
+                fontFamily: "'Plus Jakarta Sans', sans-serif"
+            },
+            grid: {
+                vertLines: { color: 'rgba(255, 255, 255, 0.04)' },
+                horzLines: { color: 'rgba(255, 255, 255, 0.04)' }
+            },
+            crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+            rightPriceScale: { borderColor: 'rgba(255, 255, 255, 0.08)' },
+            timeScale: {
+                borderColor: 'rgba(255, 255, 255, 0.08)',
+                timeVisible: true,
+                secondsVisible: false
+            },
+            handleScroll: true,
+            handleScale: true
+        });
+
+        priceSeries = tvChart.addLineSeries({
+            color: '#00f2fe',
+            lineWidth: 2.5,
+            crosshairMarkerRadius: 5,
+            lastValueVisible: true,
+            priceLineVisible: true,
+            priceLineColor: 'rgba(0, 242, 254, 0.3)'
+        });
+
+        new ResizeObserver(() => {
+            if (tvChart && el) {
+                tvChart.applyOptions({ width: el.clientWidth, height: el.clientHeight });
+            }
+        }).observe(el);
+    } catch(e) {
+        console.error("Failed to initialize Lightweight Charts:", e);
+        el.innerHTML = `<div class="loading" style="color:var(--down)">Chart Initialization Error.</div>`;
+    }
 }
+
 
 function onAssetChange() {
     currentAsset = document.getElementById('asset-select').value;
