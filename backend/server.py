@@ -616,8 +616,14 @@ neo_fetcher = NeoDataFetcher()
 # 1. Index Ticker (existing)
 INDEX_SYMBOLS = {"NIFTY": "^NSEI", "BANKNIFTY": "^NSEBANK", "FINNIFTY": "NIFTY_FIN_SERVICE.NS", "SENSEX": "^BSESN"}
 
+_indices_cache = {"data": None, "ts": 0}
+
 @app.get("/api/indices")
 async def get_indices():
+    now = time.time()
+    if _indices_cache["data"] and now - _indices_cache["ts"] < 8:
+        return _indices_cache["data"]
+
     results = {}
     
     # Priority: Kotak Neo Real-time for NSE indices
@@ -632,7 +638,7 @@ async def get_indices():
             continue  # Already have from Neo
         try:
             url = f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}?interval=1m&range=5d"
-            r = req_lib.get(url, headers=hdrs, timeout=5).json()
+            r = req_lib.get(url, headers=hdrs, timeout=3).json()
             meta = r["chart"]["result"][0]["meta"]
             price = meta.get("regularMarketPrice", 0)
             prev = meta.get("chartPreviousClose") or meta.get("previousClose") or price
@@ -641,7 +647,11 @@ async def get_indices():
         except Exception as e:
             if name not in results:
                 results[name] = {"price": 0, "change": 0, "change_pct": 0, "error": str(e)}
+                
+    _indices_cache["data"] = results
+    _indices_cache["ts"] = now
     return results
+
 
 # 2. Global Markets (Brent, NASDAQ, Dow, Gold, USDINR, S&P)
 GLOBAL_SYMBOLS = {
@@ -675,18 +685,31 @@ def get_global():
     return results
 
 # 3. VIX
+_vix_cache = {"data": None, "ts": 0}
+
 @app.get("/api/vix")
 def get_vix():
+    now = time.time()
+    if _vix_cache["data"] and now - _vix_cache["ts"] < 8:
+        return _vix_cache["data"]
+
     hdrs = {"User-Agent": "Mozilla/5.0"}
     try:
         url = "https://query1.finance.yahoo.com/v8/finance/chart/%5EINDIAVIX?interval=1m&range=1d"
-        r = req_lib.get(url, headers=hdrs, timeout=5).json()
+        r = req_lib.get(url, headers=hdrs, timeout=3).json()
         meta = r["chart"]["result"][0]["meta"]
         price = meta.get("regularMarketPrice", 0)
         prev = meta.get("previousClose", price) or price
-        return {"vix": round(price,2), "change": round(price-prev,2), "change_pct": round((price-prev)/prev*100 if prev else 0,2)}
+        results = {"vix": round(price,2), "change": round(price-prev,2), "change_pct": round((price-prev)/prev*100 if prev else 0,2)}
     except Exception as e:
-        return {"vix": 0, "change": 0, "change_pct": 0, "error": str(e)}
+        results = {"vix": 0, "change": 0, "change_pct": 0, "error": str(e)}
+        
+    _vix_cache["data"] = results
+    _vix_cache["ts"] = now
+    return results
+
+
+_oc_cache = {}
 
 # 4. Option Chain
 @app.get("/api/option-chain/{symbol}")
@@ -697,6 +720,11 @@ async def get_option_chain(symbol: str):
     neo_data = await neo_fetcher.get_neo_option_chain(symbol)
     if neo_data:
         return neo_data
+
+    # Fallback Cache
+    now = time.time()
+    if symbol in _oc_cache and now - _oc_cache[symbol]["ts"] < 5:
+        return _oc_cache[symbol]["data"]
 
     # Fallback: NSE Scraping
     try:
@@ -745,8 +773,10 @@ async def get_option_chain(symbol: str):
         total_pe_oi = sum(r["pe"]["oi"] for r in rows)
         pcr = round(total_pe_oi / total_ce_oi, 2) if total_ce_oi else 0
 
-        return {"symbol": symbol, "spot": spot, "expiry": expiry,
-                "expiries": exp_dates[:5], "pcr": pcr, "rows": rows, "atm": round(spot/50)*50}
+        result = {"symbol": symbol, "spot": spot, "expiry": expiry,
+                  "expiries": exp_dates[:5], "pcr": pcr, "rows": rows, "atm": round(spot/50)*50}
+        _oc_cache[symbol] = {"data": result, "ts": now}
+        return result
     except Exception as e:
         return {"symbol": symbol, "spot": 0, "expiry": "", "expiries": [], "pcr": 0, "rows": [], "atm": 0, "error": str(e)}
 
