@@ -320,12 +320,29 @@
         </div>
 
         <div class="pd-main">
-            <!-- Sentiment Gauge Card -->
-            <div class="glass-card pd-gauge-card">
-                <span class="card-title">Market Sentiment</span>
-                <div class="pd-gauge-label" id="pd-sentiment-label">Neutral</div>
-                <div class="pd-gauge-sub" id="pd-sentiment-ratio">50% Advance / 50% Decline</div>
+            <!-- Left Column: Sentiment & Live Scanner -->
+            <div class="pd-left-col">
+                <!-- Sentiment Gauge Card -->
+                <div class="glass-card pd-gauge-card">
+                    <span class="card-title">Market Sentiment</span>
+                    <div class="pd-gauge-label" id="pd-sentiment-label">Neutral</div>
+                    <div class="pd-gauge-sub" id="pd-sentiment-ratio">50% Advance / 50% Decline</div>
+                </div>
+
+                <!-- Live Scanner Card -->
+                <div class="glass-card pd-scanner-card">
+                    <span class="card-title">
+                        <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.8"/><path d="M10 6v4l3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                        Live Day H/L Scanner
+                    </span>
+                    <div class="scanner-list-scroll">
+                        <div class="scanner-list" id="scanner-list">
+                            <div class="loading">Loading Scanner...</div>
+                        </div>
+                    </div>
+                </div>
             </div>
+
 
             <!-- Pullers Table Card -->
             <div class="glass-card pd-table-card">

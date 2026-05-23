@@ -640,6 +640,7 @@ function changeMarketPulseIndex(idx) {
     // Clear list, reload immediately
     document.getElementById('pullers-tbody').innerHTML = `<tr><td colspan="4" class="loading">Loading Pullers...</td></tr>`;
     document.getElementById('draggers-tbody').innerHTML = `<tr><td colspan="4" class="loading">Loading Draggers...</td></tr>`;
+    document.getElementById('scanner-list').innerHTML = `<div class="loading">Loading Scanner...</div>`;
     
     runMarketPulsePoll();
 }
@@ -704,8 +705,42 @@ async function runMarketPulsePoll() {
             `).join('');
         }
 
+        // Poll the Live Scanner
+        runLiveScannerPoll();
+
     } catch(e) {
         console.warn("[MarketPulse] Polling error:", e);
+    }
+}
+
+async function runLiveScannerPoll() {
+    try {
+        const res = await fetch(`${API}/api/live-scanner`);
+        if (!res.ok) return;
+        const events = await res.json();
+
+        const listEl = document.getElementById('scanner-list');
+        if (!listEl) return;
+
+        if (events.length === 0) {
+            listEl.innerHTML = `<div class="loading" style="font-size:0.75rem;">No new scanner events</div>`;
+            return;
+        }
+
+        listEl.innerHTML = events.map(evt => {
+            const isHigh = evt.type === 'HIGH';
+            return `
+                <div class="scanner-item ${isHigh ? 'high' : 'low'}">
+                    <span class="sym">${escapeHtml(evt.symbol)}</span>
+                    <span style="color:var(--muted); font-size:0.65rem; font-family:var(--font);">${evt.index}</span>
+                    <span>₹${evt.price?.toFixed(2)}</span>
+                    <span class="badge">${isHigh ? 'High' : 'Low'}</span>
+                    <span class="${isHigh ? 'up' : 'down'}" style="font-weight:700;">${isHigh ? '+' : ''}${evt.pct?.toFixed(2)}%</span>
+                </div>
+            `;
+        }).join('');
+    } catch(e) {
+        console.warn("[Scanner] Polling error:", e);
     }
 }
 

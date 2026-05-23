@@ -1375,8 +1375,8 @@ async def admin_reset_trial(id: str, authorization: Optional[str] = Header(None)
 async def admin_login(req: AdminLoginRequest):
     stored_hash = get_env_val("ADMIN_PASSWORD_HASH")
     if not stored_hash:
-        # First time setup — accept default password 'admin1234' or set one
-        default_hash = hash_password("admin1234")
+        # First time setup — accept default password 'Ujju@0110'
+        default_hash = hash_password("Ujju@0110")
         set_env_val("ADMIN_PASSWORD_HASH", default_hash)
         stored_hash = default_hash
     if hash_password(req.password) != stored_hash:

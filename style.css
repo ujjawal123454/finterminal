@@ -1242,6 +1242,78 @@ main {
   to { opacity: 1; transform: scale(1); }
 }
 
+/* LIVE SCANNER IN MARKET PULSE */
+.pd-left-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.pd-scanner-card {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.scanner-list-scroll {
+  overflow-y: auto;
+  flex: 1;
+  max-height: 280px;
+  padding-right: 2px;
+}
+
+.scanner-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scanner-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  border-left: 3px solid var(--muted);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+}
+
+.scanner-item.high {
+  border-left-color: var(--up);
+}
+
+.scanner-item.low {
+  border-left-color: var(--down);
+}
+
+.scanner-item .sym {
+  font-weight: 700;
+  color: var(--text);
+  font-family: var(--font);
+}
+
+.scanner-item .badge {
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.scanner-item.high .badge {
+  background: var(--up-bg);
+  color: var(--up);
+}
+
+.scanner-item.low .badge {
+  background: var(--down-bg);
+  color: var(--down);
+}
+
 /* ═══════════════════════════════════════════════════════════════
    RESPONSIVE DESIGN (Mobile First)
    ═══════════════════════════════════════════════════════════════ */
