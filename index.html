@@ -43,6 +43,42 @@
         </div>
     </div>
 
+    <!-- ═══ TICKER BAR ═══ -->
+    <div class="ticker-bar" id="ticker-bar">
+        <div class="ticker-track" id="ticker-track">
+            <div class="ticker-item">
+                <span class="ticker-name">NIFTY 50</span>
+                <span class="ticker-price" id="tn-price">—</span>
+                <span class="ticker-change" id="tn-change">—</span>
+            </div>
+            <div class="ticker-sep"></div>
+            <div class="ticker-item">
+                <span class="ticker-name">BANKNIFTY</span>
+                <span class="ticker-price" id="tb-price">—</span>
+                <span class="ticker-change" id="tb-change">—</span>
+            </div>
+            <div class="ticker-sep"></div>
+            <div class="ticker-item">
+                <span class="ticker-name">FINNIFTY</span>
+                <span class="ticker-price" id="tf-price">—</span>
+                <span class="ticker-change" id="tf-change">—</span>
+            </div>
+            <div class="ticker-sep"></div>
+            <div class="ticker-item">
+                <span class="ticker-name">SENSEX</span>
+                <span class="ticker-price" id="ts-price">—</span>
+                <span class="ticker-change" id="ts-change">—</span>
+            </div>
+            <div class="ticker-sep"></div>
+            <div class="ticker-item">
+                <span class="ticker-name">INDIA VIX</span>
+                <span class="ticker-price" id="tv-price">—</span>
+                <span class="ticker-change" id="tv-change">—</span>
+            </div>
+        </div>
+        <div class="ticker-time" id="ticker-time">Fetching…</div>
+    </div>
+
     <!-- Trial timer & Status / Action Row -->
     <div class="header-right">
         <div id="trial-timer-container" class="trial-badge" style="display: none;">
@@ -54,42 +90,6 @@
         </button>
     </div>
 </header>
-
-<!-- ═══ TICKER BAR ═══ -->
-<div class="ticker-bar" id="ticker-bar">
-    <div class="ticker-track" id="ticker-track">
-        <div class="ticker-item">
-            <span class="ticker-name">NIFTY 50</span>
-            <span class="ticker-price" id="tn-price">—</span>
-            <span class="ticker-change" id="tn-change">—</span>
-        </div>
-        <div class="ticker-sep"></div>
-        <div class="ticker-item">
-            <span class="ticker-name">BANKNIFTY</span>
-            <span class="ticker-price" id="tb-price">—</span>
-            <span class="ticker-change" id="tb-change">—</span>
-        </div>
-        <div class="ticker-sep"></div>
-        <div class="ticker-item">
-            <span class="ticker-name">FINNIFTY</span>
-            <span class="ticker-price" id="tf-price">—</span>
-            <span class="ticker-change" id="tf-change">—</span>
-        </div>
-        <div class="ticker-sep"></div>
-        <div class="ticker-item">
-            <span class="ticker-name">SENSEX</span>
-            <span class="ticker-price" id="ts-price">—</span>
-            <span class="ticker-change" id="ts-change">—</span>
-        </div>
-        <div class="ticker-sep"></div>
-        <div class="ticker-item">
-            <span class="ticker-name">INDIA VIX</span>
-            <span class="ticker-price" id="tv-price">—</span>
-            <span class="ticker-change" id="tv-change">—</span>
-        </div>
-    </div>
-    <div class="ticker-time" id="ticker-time">Fetching…</div>
-</div>
 
 <!-- ═══ AUTHENTICATION SCREEN ═══ -->
 <div id="auth-screen" class="auth-overlay">
@@ -173,6 +173,13 @@
             <div class="offer-body">Zero AMC, Zero Account Opening Fees & lowest brokerage. Use our referral link to unlock <strong>LIFETIME FREE TERMINAL ACCESS!</strong></div>
             <a href="https://ekyc.mstock.com/Register-with-us?pdc=AB3418D4A" class="offer-link" target="_blank">Open mStock Account &rarr;</a>
         </div>
+        
+        <div style="text-align: center; margin-top: 15px;">
+            <a href="/admin" style="color: var(--muted); font-size: 0.8rem; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; transition: color 0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">
+                <svg viewBox="0 0 20 20" fill="none" width="14" height="14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2C7.24 2 5 4.24 5 7v1H4a1 1 0 00-1 1v8a1 1 0 001 1h12a1 1 0 001-1V9a1 1 0 00-1-1h-1V7c0-2.76-2.24-5-5-5zm0 2c1.66 0 3 1.34 3 3v1H7V7c0-1.66 1.34-3 3-3z"/></svg>
+                Admin Panel Access
+            </a>
+        </div>
     </div>
 </div>
 
@@ -222,6 +229,10 @@
         <button class="tab-btn" data-tab="market-pulse" onclick="switchDashboardTab('market-pulse')">
             <svg viewBox="0 0 20 20" fill="none"><path d="M10 2v3M10 15v3M2 10h3M15 10h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="10" cy="10" r="4" stroke="currentColor" stroke-width="2"/></svg>
             Market Pulse
+        </button>
+        <button class="tab-btn" data-tab="live-scanner" onclick="switchDashboardTab('live-scanner')">
+            <svg viewBox="0 0 20 20" fill="none"><path d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m14-6h2m-2 6h2M6 6h8a2 2 0 012 2v8a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Live Scanner
         </button>
     </div>
 
@@ -328,19 +339,6 @@
                     <div class="pd-gauge-label" id="pd-sentiment-label">Neutral</div>
                     <div class="pd-gauge-sub" id="pd-sentiment-ratio">50% Advance / 50% Decline</div>
                 </div>
-
-                <!-- Live Scanner Card -->
-                <div class="glass-card pd-scanner-card">
-                    <span class="card-title">
-                        <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.8"/><path d="M10 6v4l3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-                        Live Day H/L Scanner
-                    </span>
-                    <div class="scanner-list-scroll">
-                        <div class="scanner-list" id="scanner-list">
-                            <div class="loading">Loading Scanner...</div>
-                        </div>
-                    </div>
-                </div>
             </div>
 
 
@@ -381,6 +379,64 @@
                             <tr><td colspan="4" class="loading">Select an Index to Load</td></tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── TAB 3: LIVE SCANNER PANEL ─── -->
+    <div class="tab-panel" id="panel-live-scanner">
+        <div class="glass-card">
+            <div class="card-header" style="border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 15px;">
+                <div class="card-title" style="font-size: 1.1rem; font-weight: 700; color: var(--heading);">
+                    🔥 Intraday Live Day High / Low Scanner
+                </div>
+                <span class="status-pill connected" style="font-size: 0.72rem;">LIVE STREAMING</span>
+            </div>
+            
+            <p style="color: var(--muted); font-size: 0.83rem; margin-bottom: 1.5rem; line-height: 1.5;">
+                Real-time tracking of Nifty stocks breaking their intraday High/Low benchmarks. (Simulated live feed for testing).
+            </p>
+
+            <div class="scanner-grid">
+                <!-- Day High Breakers -->
+                <div class="glass-card pd-table-card" style="margin: 0;">
+                    <div class="pd-table-head puller-head">🚀 New Day High Breakers</div>
+                    <div class="pd-table-scroll" style="max-height: 380px;">
+                        <table class="pd-table">
+                            <thead>
+                                <tr>
+                                    <th>Symbol</th>
+                                    <th>LTP</th>
+                                    <th>Today's High</th>
+                                    <th>Gain %</th>
+                                </tr>
+                            </thead>
+                            <tbody id="high-breakers-tbody">
+                                <tr><td colspan="4" class="loading">Loading high breakers...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Day Low Breakers -->
+                <div class="glass-card pd-table-card" style="margin: 0;">
+                    <div class="pd-table-head dragger-head">📉 New Day Low Breakers</div>
+                    <div class="pd-table-scroll" style="max-height: 380px;">
+                        <table class="pd-table">
+                            <thead>
+                                <tr>
+                                    <th>Symbol</th>
+                                    <th>LTP</th>
+                                    <th>Today's Low</th>
+                                    <th>Loss %</th>
+                                </tr>
+                            </thead>
+                            <tbody id="low-breakers-tbody">
+                                <tr><td colspan="4" class="loading">Loading low breakers...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>

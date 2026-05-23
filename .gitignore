@@ -34,4 +34,5 @@ backend/search_sdk.py
 .DS_Store
 Thumbs.db
 backend/users.json
+backend/tokens.json
 

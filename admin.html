@@ -707,9 +707,9 @@
 <div id="toast"></div>
 
 <script>
-const API = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
-  ? 'http://localhost:3000'
-  : window.location.origin;
+const API = (window.location.protocol === 'file:' || window.location.origin === 'null') 
+  ? 'http://127.0.0.1:3000' 
+  : '';
 let adminToken = sessionStorage.getItem('admin_token') || null;
 
 // ── Toast ──────────────────────────────────────
@@ -739,7 +739,7 @@ async function adminLogin() {
   btn.innerHTML = `<span class="spin"></span> Verifying…`;
 
   try {
-    const res = await fetch(`${API}/api/admin/login`, {
+    const res = await fetch(`${API}/api/mgt/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password: pwd })
@@ -754,7 +754,7 @@ async function adminLogin() {
       showAlert('login-alert', data.detail || 'Invalid password', 'error');
     }
   } catch (e) {
-    showAlert('login-alert', 'Cannot reach server — is the backend running?', 'error');
+    showAlert('login-alert', 'Error: ' + e.message + ' — is the backend server running at ' + (API || window.location.origin) + '?', 'error');
   }
 
   btn.disabled = false;
@@ -783,7 +783,7 @@ function doLogout() {
 // ── Session status ─────────────────────────────
 async function checkStatus() {
   try {
-    const res = await fetch(`${API}/api/admin/status`, {
+    const res = await fetch(`${API}/api/mgt/status`, {
       headers: { 'Authorization': `Bearer ${adminToken}` }
     });
     if (res.status === 401) { toast('Session expired, please re-login', 'error'); doLogout(); return; }
@@ -813,7 +813,7 @@ async function checkStatus() {
 async function killSession() {
   if (!confirm('This will disconnect the Kotak Neo session. Continue?')) return;
   try {
-    const res = await fetch(`${API}/api/admin/kill-session`, {
+    const res = await fetch(`${API}/api/mgt/kill-session`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${adminToken}` }
     });
@@ -874,7 +874,7 @@ async function loginNeo() {
 // ── Load API key config ────────────────────────
 async function loadApiKeyConfig() {
   try {
-    const res = await fetch(`${API}/api/admin/config`, {
+    const res = await fetch(`${API}/api/mgt/config`, {
       headers: { 'Authorization': `Bearer ${adminToken}` }
     });
     if (!res.ok) return;
@@ -890,7 +890,7 @@ async function saveApiKeys() {
   if (!ck) { showAlert('cfg-alert', 'Consumer Key is required', 'error'); return; }
 
   try {
-    const res = await fetch(`${API}/api/admin/config`, {
+    const res = await fetch(`${API}/api/mgt/config`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -919,7 +919,7 @@ async function changePassword() {
   if (np !== cp) { showAlert('pwd-alert', 'Passwords do not match', 'error'); return; }
 
   try {
-    const res = await fetch(`${API}/api/admin/change-password`, {
+    const res = await fetch(`${API}/api/mgt/change-password`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -934,6 +934,14 @@ async function changePassword() {
       toast('Password changed!', 'success');
       document.getElementById('new-pwd').value = '';
       document.getElementById('confirm-pwd').value = '';
+    } else {
+      showAlert('pwd-alert', d.detail || 'Change password failed', 'error');
+    }
+  } catch (e) {
+    showAlert('pwd-alert', 'Error: ' + e.message, 'error');
+  }
+}
+
 // ── Registered Users Logic ──────────────────────
 let allRegisteredUsers = [];
 
@@ -942,7 +950,7 @@ async function loadUsersList() {
   tbody.innerHTML = `<tr><td colspan="6" class="loading"><span class="spin"></span> Querying users...</td></tr>`;
 
   try {
-    const res = await fetch(`${API}/api/admin/users`, {
+    const res = await fetch(`${API}/api/mgt/users`, {
       headers: { 'Authorization': `Bearer ${adminToken}` }
     });
     if (res.status === 401) { doLogout(); return; }
@@ -1013,7 +1021,7 @@ function filterUsersTable() {
 
 async function approveUser(userId) {
   try {
-    const res = await fetch(`${API}/api/admin/users/${userId}/approve`, {
+    const res = await fetch(`${API}/api/mgt/users/${userId}/approve`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${adminToken}` }
     });
@@ -1032,7 +1040,7 @@ async function approveUser(userId) {
 async function revokeUser(userId) {
   if (!confirm("Are you sure you want to revoke access for this user?")) return;
   try {
-    const res = await fetch(`${API}/api/admin/users/${userId}/revoke`, {
+    const res = await fetch(`${API}/api/mgt/users/${userId}/revoke`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${adminToken}` }
     });
@@ -1050,7 +1058,7 @@ async function revokeUser(userId) {
 
 async function resetUserTrial(userId) {
   try {
-    const res = await fetch(`${API}/api/admin/users/${userId}/reset-trial`, {
+    const res = await fetch(`${API}/api/mgt/users/${userId}/reset-trial`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${adminToken}` }
     });
@@ -1083,7 +1091,7 @@ window.addEventListener('DOMContentLoaded', () => {
   // Check if already have a token
   if (adminToken) {
     // Validate token with server
-    fetch(`${API}/api/admin/status`, { headers: { 'Authorization': `Bearer ${adminToken}` } })
+    fetch(`${API}/api/mgt/status`, { headers: { 'Authorization': `Bearer ${adminToken}` } })
       .then(r => {
         if (r.ok) showAdminPanel();
         else { adminToken = null; sessionStorage.removeItem('admin_token'); }

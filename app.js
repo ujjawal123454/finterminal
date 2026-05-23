@@ -3,9 +3,7 @@
    ═══════════════════════════════════════════════════════════════ */
 
 // Detect API URL (same origin for production, localhost:3000 for development)
-const API = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
-  ? 'http://localhost:3000'
-  : window.location.origin;
+const API = '';
 
 // State Variables
 let token = localStorage.getItem('finterminal_token') || null;
@@ -26,6 +24,7 @@ let currentMPIndex = 'NIFTY';
 let tickerInterval = null;
 let straddleInterval = null;
 let marketPulseInterval = null;
+let liveScannerInterval = null;
 let trialCountdownInterval = null;
 let authCheckInterval = null;
 
@@ -125,6 +124,7 @@ function stopTerminalDashboard() {
     clearInterval(tickerInterval);
     clearInterval(straddleInterval);
     clearInterval(marketPulseInterval);
+    clearInterval(liveScannerInterval);
     clearInterval(trialCountdownInterval);
     clearInterval(authCheckInterval);
     
@@ -488,11 +488,16 @@ function switchDashboardTab(tab) {
     // Clear and re-run custom queries based on tab
     if (tab === 'straddle') {
         clearInterval(marketPulseInterval);
+        clearInterval(liveScannerInterval);
         runStraddlePoll();
     } else if (tab === 'market-pulse') {
-        clearInterval(marketPulseInterval);
+        clearInterval(liveScannerInterval);
         runMarketPulsePoll();
         marketPulseInterval = setInterval(runMarketPulsePoll, 10000);
+    } else if (tab === 'live-scanner') {
+        clearInterval(marketPulseInterval);
+        runLiveScannerPoll();
+        liveScannerInterval = setInterval(runLiveScannerPoll, 10000);
     }
 }
 
@@ -640,7 +645,6 @@ function changeMarketPulseIndex(idx) {
     // Clear list, reload immediately
     document.getElementById('pullers-tbody').innerHTML = `<tr><td colspan="4" class="loading">Loading Pullers...</td></tr>`;
     document.getElementById('draggers-tbody').innerHTML = `<tr><td colspan="4" class="loading">Loading Draggers...</td></tr>`;
-    document.getElementById('scanner-list').innerHTML = `<div class="loading">Loading Scanner...</div>`;
     
     runMarketPulsePoll();
 }
@@ -705,40 +709,52 @@ async function runMarketPulsePoll() {
             `).join('');
         }
 
-        // Poll the Live Scanner
-        runLiveScannerPoll();
-
     } catch(e) {
         console.warn("[MarketPulse] Polling error:", e);
     }
 }
 
 async function runLiveScannerPoll() {
+    if (activeDashboardTab !== 'live-scanner') return;
+    if (!token || (user && user.access !== 'full' && trialRemainingSeconds <= 0)) return;
+
     try {
         const res = await fetch(`${API}/api/live-scanner`);
         if (!res.ok) return;
         const events = await res.json();
 
-        const listEl = document.getElementById('scanner-list');
-        if (!listEl) return;
+        const highTbody = document.getElementById('high-breakers-tbody');
+        const lowTbody = document.getElementById('low-breakers-tbody');
+        if (!highTbody || !lowTbody) return;
 
-        if (events.length === 0) {
-            listEl.innerHTML = `<div class="loading" style="font-size:0.75rem;">No new scanner events</div>`;
-            return;
+        const highs = events.filter(e => e.type === 'HIGH');
+        const lows = events.filter(e => e.type === 'LOW');
+
+        if (highs.length === 0) {
+            highTbody.innerHTML = `<tr><td colspan="4" class="loading">No stocks making new highs right now</td></tr>`;
+        } else {
+            highTbody.innerHTML = highs.map(item => `
+                <tr>
+                    <td class="sym-cell"><strong>${escapeHtml(item.symbol)}</strong> <span style="font-size:0.68rem; color:var(--muted);">${item.index}</span></td>
+                    <td>₹${item.price?.toFixed(2)}</td>
+                    <td style="color:var(--up); font-weight:600;">₹${item.level?.toFixed(2)}</td>
+                    <td class="up-cell" style="font-weight:700;">+${item.pct?.toFixed(2)}%</td>
+                </tr>
+            `).join('');
         }
 
-        listEl.innerHTML = events.map(evt => {
-            const isHigh = evt.type === 'HIGH';
-            return `
-                <div class="scanner-item ${isHigh ? 'high' : 'low'}">
-                    <span class="sym">${escapeHtml(evt.symbol)}</span>
-                    <span style="color:var(--muted); font-size:0.65rem; font-family:var(--font);">${evt.index}</span>
-                    <span>₹${evt.price?.toFixed(2)}</span>
-                    <span class="badge">${isHigh ? 'High' : 'Low'}</span>
-                    <span class="${isHigh ? 'up' : 'down'}" style="font-weight:700;">${isHigh ? '+' : ''}${evt.pct?.toFixed(2)}%</span>
-                </div>
-            `;
-        }).join('');
+        if (lows.length === 0) {
+            lowTbody.innerHTML = `<tr><td colspan="4" class="loading">No stocks making new lows right now</td></tr>`;
+        } else {
+            lowTbody.innerHTML = lows.map(item => `
+                <tr>
+                    <td class="sym-cell"><strong>${escapeHtml(item.symbol)}</strong> <span style="font-size:0.68rem; color:var(--muted);">${item.index}</span></td>
+                    <td>₹${item.price?.toFixed(2)}</td>
+                    <td style="color:var(--down); font-weight:600;">₹${item.level?.toFixed(2)}</td>
+                    <td class="dn-cell" style="font-weight:700;">${item.pct?.toFixed(2)}%</td>
+                </tr>
+            `).join('');
+        }
     } catch(e) {
         console.warn("[Scanner] Polling error:", e);
     }
@@ -787,7 +803,7 @@ function setTickerItem(id, d) {
     if (!priceEl) return;
 
     const oldPrice = priceEl.textContent;
-    const newPrice = d.price?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) ?? '—';
+    const newPrice = typeof d.price === 'number' ? d.price.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '—';
     
     if (oldPrice !== newPrice) {
         priceEl.classList.remove('flash-up', 'flash-down');
@@ -798,7 +814,9 @@ function setTickerItem(id, d) {
 
     const chgEl = document.getElementById(`${id}-change`);
     if (chgEl) {
-        chgEl.textContent = `${up ? '+' : ''}${d.change?.toFixed(2)} (${d.change_pct?.toFixed(2)}%)`;
+        const changeStr = typeof d.change === 'number' ? d.change.toFixed(2) : '0.00';
+        const changePctStr = typeof d.change_pct === 'number' ? d.change_pct.toFixed(2) : '0.00';
+        chgEl.textContent = `${up ? '+' : ''}${changeStr} (${changePctStr}%)`;
         chgEl.className = `ticker-change ${up ? 'up' : 'down'}`;
     }
 }
