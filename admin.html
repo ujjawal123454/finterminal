@@ -367,7 +367,103 @@
     #toast.success { border-color: rgba(0,208,132,0.4); color: var(--up); }
     #toast.error   { border-color: rgba(255,71,87,0.4);  color: var(--down); }
     #toast.info    { border-color: rgba(79,172,254,0.4); color: var(--accent); }
+
+    /* Registered Users styling */
+    .users-table-scroll {
+      overflow-x: auto;
+      margin-top: 1rem;
+      max-height: 400px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    .users-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    .users-table th {
+      text-align: left;
+      padding: 10px 12px;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.68rem;
+      background: rgba(0,0,0,0.2);
+    }
+    .users-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+    }
+    .users-table tr:hover td {
+      background: rgba(255,255,255,0.02);
+    }
+    .user-badge {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+    .user-badge.trial {
+      background: rgba(245,158,11,0.15);
+      color: #f59e0b;
+    }
+    .user-badge.full {
+      background: rgba(0,208,132,0.15);
+      color: var(--up);
+    }
+    .user-badge.revoked {
+      background: rgba(255,71,87,0.15);
+      color: var(--down);
+    }
+    .btn-action {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      outline: none;
+    }
+    .btn-action.approve {
+      background: rgba(0,208,132,0.12);
+      border: 1px solid rgba(0,208,132,0.3);
+      color: var(--up);
+    }
+    .btn-action.approve:hover {
+      background: rgba(0,208,132,0.25);
+    }
+    .btn-action.revoke {
+      background: rgba(255,71,87,0.12);
+      border: 1px solid rgba(255,71,87,0.3);
+      color: var(--down);
+    }
+    .btn-action.revoke:hover {
+      background: rgba(255,71,87,0.25);
+    }
+    .btn-action.reset {
+      background: rgba(79,172,254,0.12);
+      border: 1px solid rgba(79,172,254,0.3);
+      color: var(--accent);
+    }
+    .btn-action.reset:hover {
+      background: rgba(79,172,254,0.25);
+    }
+    .action-cell {
+      display: flex;
+      gap: 6px;
+    }
+    .search-row {
+      margin-bottom: 1rem;
+    }
+    .optional {
+      opacity: 0.6;
+      font-size: 0.75rem;
+    }
   </style>
+
 </head>
 <body>
 <div class="page">
@@ -466,6 +562,45 @@
         </div>
         <div class="alert" id="status-alert"></div>
       </div>
+
+      <!-- ── Registered Users Control ── -->
+      <div class="glass-card">
+        <div class="card-header">
+          <div class="card-title">
+            <svg viewBox="0 0 20 20" fill="none"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.04-.3.07-.61.07-.93a5.97 5.97 0 00-1.8-4.25 5.98 5.98 0 016.8 4.25c0 .5-.4 1-.92 1H12.93zM2.07 17a5.98 5.98 0 016.8-4.25c.34.46.6.99.76 1.57A6 6 0 008 16c0 1.07.28 2.07.77 2.94H3c-.53 0-.93-.5-.93-.94z" fill="currentColor"/></svg>
+            Registered Users Management
+          </div>
+          <button class="btn-secondary" onclick="loadUsersList()" style="padding: 5px 12px; font-size: 0.78rem;">
+            Refresh Users
+          </button>
+        </div>
+
+        <div class="search-row">
+          <input class="fin-input" type="text" id="users-search" placeholder="Search by email, mobile or client code..." oninput="filterUsersTable()">
+        </div>
+
+        <div class="users-table-scroll">
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Mobile</th>
+                <th>Client Code</th>
+                <th>Access Status</th>
+                <th>Trial Remaining</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody">
+              <tr>
+                <td colspan="6" class="loading">Loading user registry...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="alert" id="users-alert"></div>
+      </div>
+
 
       <!-- ── Kotak Neo Login ── -->
       <div class="glass-card">
@@ -632,7 +767,9 @@ function showAdminPanel() {
   document.getElementById('logout-btn').style.display = 'inline-flex';
   checkStatus();
   loadApiKeyConfig();
+  loadUsersList();
 }
+
 
 function doLogout() {
   adminToken = null;
@@ -797,13 +934,143 @@ async function changePassword() {
       toast('Password changed!', 'success');
       document.getElementById('new-pwd').value = '';
       document.getElementById('confirm-pwd').value = '';
-    } else {
-      showAlert('pwd-alert', '✗ ' + (d.detail || 'Failed'), 'error');
-    }
-  } catch (e) {
-    showAlert('pwd-alert', 'Error: ' + e.message, 'error');
+// ── Registered Users Logic ──────────────────────
+let allRegisteredUsers = [];
+
+async function loadUsersList() {
+  const tbody = document.getElementById('users-tbody');
+  tbody.innerHTML = `<tr><td colspan="6" class="loading"><span class="spin"></span> Querying users...</td></tr>`;
+
+  try {
+    const res = await fetch(`${API}/api/admin/users`, {
+      headers: { 'Authorization': `Bearer ${adminToken}` }
+    });
+    if (res.status === 401) { doLogout(); return; }
+    
+    allRegisteredUsers = await res.json();
+    renderUsersTable(allRegisteredUsers);
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="6" class="loading" style="color:var(--down)">Failed to load users list.</td></tr>`;
   }
 }
+
+function renderUsersTable(usersList) {
+  const tbody = document.getElementById('users-tbody');
+  if (usersList.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" class="loading">No registered users found.</td></tr>`;
+    return;
+  }
+
+  const now = Date.now() / 1000;
+  
+  tbody.innerHTML = usersList.map(u => {
+    let trialLeft = '—';
+    if (u.access === 'trial' && u.trial_start) {
+      const elapsed = now - u.trial_start;
+      const left = Math.max(0, 1800 - elapsed);
+      const mins = Math.floor(left / 60);
+      const secs = Math.floor(left % 60);
+      trialLeft = left > 0 ? `${mins}m ${secs}s` : 'Expired';
+    } else if (u.access === 'full') {
+      trialLeft = 'Premium ✅';
+    }
+
+    const badgeClass = u.access === 'full' ? 'full' : u.access === 'revoked' ? 'revoked' : 'trial';
+    
+    return `
+      <tr data-id="${u.id}">
+        <td><strong>${escapeHtml(u.email)}</strong></td>
+        <td>${escapeHtml(u.mobile || '—')}</td>
+        <td>${escapeHtml(u.client_code || '—')}</td>
+        <td><span class="user-badge ${badgeClass}">${u.access}</span></td>
+        <td><span style="font-family:var(--mono); font-weight:700;">${trialLeft}</span></td>
+        <td>
+          <div class="action-cell">
+            ${u.access !== 'full' ? `<button class="btn-action approve" onclick="approveUser('${u.id}')">Approve</button>` : ''}
+            ${u.access !== 'revoked' ? `<button class="btn-action revoke" onclick="revokeUser('${u.id}')">Revoke</button>` : ''}
+            <button class="btn-action reset" onclick="resetUserTrial('${u.id}')">Reset Timer</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function filterUsersTable() {
+  const q = document.getElementById('users-search').value.toLowerCase().trim();
+  if (!q) {
+    renderUsersTable(allRegisteredUsers);
+    return;
+  }
+
+  const filtered = allRegisteredUsers.filter(u => 
+    u.email.toLowerCase().includes(q) || 
+    (u.mobile && u.mobile.includes(q)) || 
+    (u.client_code && u.client_code.toLowerCase().includes(q))
+  );
+  renderUsersTable(filtered);
+}
+
+async function approveUser(userId) {
+  try {
+    const res = await fetch(`${API}/api/admin/users/${userId}/approve`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${adminToken}` }
+    });
+    const d = await res.json();
+    if (res.ok) {
+      toast("User approved to Full Lifetime Access", "success");
+      loadUsersList();
+    } else {
+      toast("Error: " + d.detail, "error");
+    }
+  } catch(e) {
+    toast("Server connection failed.", "error");
+  }
+}
+
+async function revokeUser(userId) {
+  if (!confirm("Are you sure you want to revoke access for this user?")) return;
+  try {
+    const res = await fetch(`${API}/api/admin/users/${userId}/revoke`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${adminToken}` }
+    });
+    const d = await res.json();
+    if (res.ok) {
+      toast("User access revoked", "success");
+      loadUsersList();
+    } else {
+      toast("Error: " + d.detail, "error");
+    }
+  } catch(e) {
+    toast("Server connection failed.", "error");
+  }
+}
+
+async function resetUserTrial(userId) {
+  try {
+    const res = await fetch(`${API}/api/admin/users/${userId}/reset-trial`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${adminToken}` }
+    });
+    const d = await res.json();
+    if (res.ok) {
+      toast("User trial reset & 30-min timer restarted", "success");
+      loadUsersList();
+    } else {
+      toast("Error: " + d.detail, "error");
+    }
+  } catch(e) {
+    toast("Server connection failed.", "error");
+  }
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
 
 // ── On load ────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {

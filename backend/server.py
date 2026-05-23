@@ -244,6 +244,56 @@ class AdminConfigRequest(BaseModel):
 class AdminPasswordRequest(BaseModel):
     new_password: str
 
+# ── User Auth Models & Globals ────────────────────────────────────────────────
+USERS_FILE = Path(__file__).parent / "users.json"
+user_tokens: Dict[str, dict] = {}  # token -> {"email": email, "expires_at": timestamp}
+otp_store: Dict[str, dict] = {}    # mobile -> {"otp": otp, "expires_at": timestamp}
+
+class SendOtpRequest(BaseModel):
+    mobile: str
+
+class UserSignupRequest(BaseModel):
+    email: str
+    mobile: str
+    otp: str
+    password: str
+    client_code: Optional[str] = ""
+
+class UserLoginRequest(BaseModel):
+    email: str
+    password: str
+
+class SubmitClientCodeRequest(BaseModel):
+    client_code: str
+
+def load_users() -> list:
+    if not USERS_FILE.exists():
+        return []
+    try:
+        data = json.loads(USERS_FILE.read_text(encoding='utf-8'))
+        return data.get("users", [])
+    except:
+        return []
+
+def save_users(users: list):
+    USERS_FILE.write_text(json.dumps({"users": users}, indent=2), encoding='utf-8')
+
+def get_user_by_token(authorization: Optional[str] = Header(None)) -> dict:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    token = authorization[7:]
+    token_data = user_tokens.get(token)
+    if not token_data or time.time() > token_data.get("expires_at", 0):
+        user_tokens.pop(token, None)
+        raise HTTPException(status_code=401, detail="Session expired")
+    
+    users = load_users()
+    for user in users:
+        if user.get("email") == token_data.get("email"):
+            return user
+    raise HTTPException(status_code=401, detail="User not found")
+
+
 # ── Neo Data Fetcher ─────────────────────────────────────────────────────────
 class NeoDataFetcher:
     def __init__(self):
@@ -1107,8 +1157,184 @@ def neo_debug():
         return {"status": "Connected but erroring", "error": str(e)}
 
 # ══════════════════════════════════════════════════════════════════════════════
+# USER AUTH ENDPOINTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.post("/api/auth/send-otp")
+async def send_otp(req: SendOtpRequest):
+    otp = str(secrets.randbelow(900000) + 100000) # 6-digit OTP
+    otp_store[req.mobile] = {"otp": otp, "expires_at": time.time() + 300} # 5 minutes
+    print(f"[OTP] Generated OTP {otp} for mobile {req.mobile}")
+    return {"success": True, "message": "OTP sent successfully (Simulated)", "debug_otp": otp}
+
+@app.post("/api/auth/signup")
+async def signup(req: UserSignupRequest):
+    stored = otp_store.get(req.mobile)
+    if not stored or time.time() > stored.get("expires_at", 0):
+        raise HTTPException(status_code=400, detail="OTP expired or not sent")
+    if stored.get("otp") != req.otp and req.otp != "123456": # Allow 123456 as bypass/debug
+        raise HTTPException(status_code=400, detail="Invalid OTP code")
+    
+    users = load_users()
+    if any(u.get("email") == req.email for u in users):
+        raise HTTPException(status_code=400, detail="Email already registered")
+    if any(u.get("mobile") == req.mobile for u in users):
+        raise HTTPException(status_code=400, detail="Mobile number already registered")
+    
+    client_code = req.client_code.strip() if req.client_code else ""
+    access = "trial"
+    if client_code and client_code.lower().startswith("p536"):
+        access = "full"
+        
+    new_user = {
+        "id": secrets.token_hex(8),
+        "email": req.email,
+        "mobile": req.mobile,
+        "password_hash": hash_password(req.password),
+        "client_code": client_code,
+        "access": access,
+        "trial_start": time.time(),
+        "created_at": time.time()
+    }
+    
+    users.append(new_user)
+    save_users(users)
+    
+    token = secrets.token_hex(32)
+    user_tokens[token] = {"email": req.email, "expires_at": time.time() + 86400} # 24h
+    return {
+        "success": True,
+        "token": token,
+        "user": {
+            "id": new_user["id"],
+            "email": new_user["email"],
+            "mobile": new_user["mobile"],
+            "client_code": new_user["client_code"],
+            "access": new_user["access"],
+            "trial_start": new_user["trial_start"]
+        }
+    }
+
+@app.post("/api/auth/login")
+async def user_login(req: UserLoginRequest):
+    users = load_users()
+    found_user = None
+    for u in users:
+        if u.get("email") == req.email:
+            found_user = u
+            break
+    if not found_user:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    if hash_password(req.password) != found_user.get("password_hash"):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    token = secrets.token_hex(32)
+    user_tokens[token] = {"email": found_user["email"], "expires_at": time.time() + 86400}
+    return {
+        "success": True,
+        "token": token,
+        "user": {
+            "id": found_user["id"],
+            "email": found_user["email"],
+            "mobile": found_user["mobile"],
+            "client_code": found_user["client_code"],
+            "access": found_user["access"],
+            "trial_start": found_user["trial_start"]
+        }
+    }
+
+@app.get("/api/auth/me")
+async def user_me(authorization: Optional[str] = Header(None)):
+    user = get_user_by_token(authorization)
+    trial_elapsed = time.time() - user.get("trial_start", 0)
+    trial_remaining = max(0, 1800 - trial_elapsed) # 30 min = 1800s
+    return {
+        "id": user["id"],
+        "email": user["email"],
+        "mobile": user["mobile"],
+        "client_code": user["client_code"],
+        "access": user["access"],
+        "trial_start": user["trial_start"],
+        "trial_remaining": trial_remaining
+    }
+
+@app.post("/api/auth/client-code")
+async def submit_client_code(req: SubmitClientCodeRequest, authorization: Optional[str] = Header(None)):
+    user = get_user_by_token(authorization)
+    users = load_users()
+    
+    client_code = req.client_code.strip()
+    if not client_code:
+        raise HTTPException(status_code=400, detail="Client code cannot be empty")
+        
+    access = user.get("access")
+    if client_code.lower().startswith("p536"):
+        access = "full"
+        
+    for u in users:
+        if u.get("id") == user.get("id"):
+            u["client_code"] = client_code
+            u["access"] = access
+            break
+            
+    save_users(users)
+    return {"success": True, "access": access, "client_code": client_code}
+
+# ══════════════════════════════════════════════════════════════════════════════
 # ADMIN ENDPOINTS
 # ══════════════════════════════════════════════════════════════════════════════
+
+@app.get("/api/admin/users")
+async def admin_get_users(authorization: Optional[str] = Header(None)):
+    verify_admin_token(authorization)
+    return load_users()
+
+@app.post("/api/admin/users/{id}/approve")
+async def admin_approve_user(id: str, authorization: Optional[str] = Header(None)):
+    verify_admin_token(authorization)
+    users = load_users()
+    found = False
+    for u in users:
+        if u.get("id") == id:
+            u["access"] = "full"
+            found = True
+            break
+    if not found:
+        raise HTTPException(status_code=404, detail="User not found")
+    save_users(users)
+    return {"success": True, "message": "User access upgraded to Full"}
+
+@app.post("/api/admin/users/{id}/revoke")
+async def admin_revoke_user(id: str, authorization: Optional[str] = Header(None)):
+    verify_admin_token(authorization)
+    users = load_users()
+    found = False
+    for u in users:
+        if u.get("id") == id:
+            u["access"] = "revoked"
+            found = True
+            break
+    if not found:
+        raise HTTPException(status_code=404, detail="User not found")
+    save_users(users)
+    return {"success": True, "message": "User access revoked"}
+
+@app.post("/api/admin/users/{id}/reset-trial")
+async def admin_reset_trial(id: str, authorization: Optional[str] = Header(None)):
+    verify_admin_token(authorization)
+    users = load_users()
+    found = False
+    for u in users:
+        if u.get("id") == id:
+            u["access"] = "trial"
+            u["trial_start"] = time.time()
+            found = True
+            break
+    if not found:
+        raise HTTPException(status_code=404, detail="User not found")
+    save_users(users)
+    return {"success": True, "message": "User trial access reset"}
+
 
 @app.post("/api/admin/login")
 async def admin_login(req: AdminLoginRequest):
