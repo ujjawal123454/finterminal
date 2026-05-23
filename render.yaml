@@ -1,12 +1,10 @@
 services:
   - type: web
     name: finterminal
-    runtime: python
+    runtime: docker
     region: singapore
     plan: free
-    rootDir: .
-    buildCommand: pip install -r requirements.txt
-    startCommand: cd backend && uvicorn server:app --host 0.0.0.0 --port $PORT
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: KOTAK_CONSUMER_KEY
         sync: false
@@ -14,7 +12,3 @@ services:
         sync: false
       - key: ADMIN_PASSWORD_HASH
         sync: false
-      - key: PORT
-        value: 10000
-      - key: PYTHON_VERSION
-        value: 3.11.0

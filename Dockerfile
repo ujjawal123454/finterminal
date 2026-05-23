@@ -1,9 +1,9 @@
-# ── Stage: Python 3.11 slim ──────────────────────────────────────────────────
+# ── Python 3.11 slim ──────────────────────────────────────────────────────────
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# System deps needed for curl_cffi and lxml
+# System deps for curl_cffi, lxml, git
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     libcurl4-openssl-dev \
@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# ── Step 1: Install all well-behaved packages first ──────────────────────────
+# ── Step 1: Install all well-behaved packages ─────────────────────────────────
 RUN pip install --no-cache-dir \
     fastapi \
     "uvicorn>=0.20.0" \
@@ -31,12 +31,13 @@ RUN pip install --no-cache-dir \
     "six==1.16.0" \
     yfinance
 
-# ── Step 2: Install neo_api_client WITHOUT its deps (avoids all conflicts) ───
+# ── Step 2: Install neo_api_client WITHOUT deps (avoids all conflicts) ────────
 RUN pip install --no-cache-dir --no-deps \
     "git+https://github.com/Kotak-Neo/Kotak-neo-api-v2.git@v2.0.1#egg=neo_api_client"
 
-# ── Copy application code ─────────────────────────────────────────────────────
+# ── Copy app ──────────────────────────────────────────────────────────────────
 COPY . .
 
-# ── Start server ─────────────────────────────────────────────────────────────
-CMD cd backend && uvicorn server:app --host 0.0.0.0 --port ${PORT:-3000}
+# ── Run (Render sets $PORT automatically) ────────────────────────────────────
+WORKDIR /app/backend
+CMD ["sh", "-c", "uvicorn server:app --host 0.0.0.0 --port $PORT"]
