@@ -1,6 +1,8 @@
+# NOTE: Deployment uses Dockerfile which installs neo_api_client with --no-deps
+# to avoid websockets/urllib3 version conflicts.
+# This file is kept for local development reference only.
 fastapi
 uvicorn>=0.20.0
-urllib3==1.26.14
 wsproto
 python-dotenv
 yfinance
