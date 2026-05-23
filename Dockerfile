@@ -16,6 +16,7 @@ RUN pip install --no-cache-dir \
     fastapi \
     "uvicorn>=0.20.0" \
     wsproto \
+    "websockets>=10.4,<14" \
     python-dotenv \
     "pandas>=2.0.0" \
     lxml \
